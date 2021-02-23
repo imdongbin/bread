@@ -6,8 +6,56 @@
 
 # 구현
 
-## 1. Saga/2. CQRS/3. Correlation
-마이페이지 초록색 카드 구현
+## 1. Saga
+## 2. CQRS
+## 3. Correlation
+- 고객이 여러 정보를 한 번에 확인할 수 있도록 (View)Mypage 구현
+```
+# Mypage 호출
+http localhost:8084/mypages
+
+# 반환값
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Tue, 23 Feb 2021 09:23:38 GMT
+Transfer-Encoding: chunked
+
+{
+    "_embedded": {
+        "mypages": [
+            {
+                "_links": {
+                    "mypage": {
+                        "href": "http://localhost:8084/mypages/1"
+                    },
+                    "self": {
+                        "href": "http://localhost:8084/mypages/1"
+                    }
+                },
+                "action": "apply",
+                "bakeryId": 1,
+                "item": "cake",
+                "orderId": 1,
+                "paymentId": null,
+                "price": 25000.0,
+                "qty": 1,
+                "status": "Confirmed"
+            }
+        ]
+    },
+    "_links": {
+        "profile": {
+            "href": "http://localhost:8084/profile/mypages"
+        },
+        "search": {
+            "href": "http://localhost:8084/mypages/search"
+        },
+        "self": {
+            "href": "http://localhost:8084/mypages"
+        }
+    }
+}
+```
 
 ## 4. Req/Resp
 오더랑 결제 관계 구현
