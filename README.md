@@ -58,7 +58,45 @@ Transfer-Encoding: chunked
 ```
 
 ## 4. Req/Resp
-오더랑 결제 관계 구현
+- 주문(order)->결제(pay) 동기식 호출
+- FeignClient 활용
+```
+# (order) PaymentService.java
+
+package bread.external;
+
+@FeignClient(name="pay", url="${api.pay.url}")
+public interface PaymentService {
+   @RequestMapping(method= RequestMethod.POST, path="/payments")
+    public void pay(@RequestBody Payment payment);
+}
+```
+- 주문을 받은 직후 결제 요청 처리
+```
+# (order) Order.java
+
+    @PostPersist
+    public void onPostPersist(){
+        bread.external.Payment payment = new bread.external.Payment();
+        payment.setOrderId(getId());
+        OrderApplication.applicationContext.getBean(bread.external.PaymentService.class)
+            .pay(payment);
+    }
+```
+- 동기 호출에서는 결제 시스템 장애 시 주문을 받지 못하는 것을 확인
+```
+# 결제(pay) 서비스 중지 (ctrl+c)
+
+# 빵 2건 주문
+http localhost:8081/orders item="cake" qty=1    #Fail (500) 
+http localhost:8081/orders item="donut" qty=5   #Fail (500)
+
+# 결제(pay) 서비스 재기동
+
+# 빵 2건 재주문
+http localhost:8081/orders item="cake" qty=1    #Success (201) 
+http localhost:8081/orders item="donut" qty=5   #Success (201)
+```
 
 ## 5. Gateway
 스프링 부트 게이트 웨이로 구현
