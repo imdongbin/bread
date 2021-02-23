@@ -99,10 +99,82 @@ http localhost:8081/orders item="donut" qty=5   #Success (201)
 ```
 
 ## 5. Gateway
-스프링 부트 게이트 웨이로 구현
+- spring boot gateway 활용
+```
+# gateway 서비스 가동 (8088 포트)
+
+# gateway 통한 orders/1 조회
+http localhost:8088/orders/1
+
+# 반환값 (http localhost:8081/orders/1 의 결과값과 동일)
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Tue, 23 Feb 2021 09:53:33 GMT
+Transfer-Encoding: chunked
+
+{
+    "_links": {
+        "order": {
+            "href": "http://localhost:8081/orders/1"
+        },
+        "self": {
+            "href": "http://localhost:8081/orders/1"
+        }
+    },
+    "item": "cake",
+    "qty": 1,
+    "status": "Confirmed"
+}
+```
 
 ## 11. Polyglot
-hsql로 구현
+- customer 서비스 DB를 기존 H2에서 hsql로 변경
+```
+# customer 서비스 > pom.xml 수정
+<!--		<dependency>-->
+<!--			<groupId>com.h2database</groupId>-->
+<!--			<artifactId>h2</artifactId>-->
+<!--			<scope>runtime</scope>-->
+<!--		</dependency>-->
+
+		<dependency>
+			<groupId>org.hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<version>2.4.0</version>
+			<scope>runtime</scope>
+		</dependency>
+```
+- customer 서비스 재기동
+- 케이크 주문을 발생 시킨 후 mypage 조회
+```
+# mypage 호출
+http localhost:8084/mypages/1
+
+# 기존 h2 사용할 때와 동일 하게 정상 조회됨
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Tue, 23 Feb 2021 09:58:08 GMT
+Transfer-Encoding: chunked
+
+{
+    "_links": {
+        "mypage": {
+            "href": "http://localhost:8084/mypages/1"
+        },
+        "self": {
+            "href": "http://localhost:8084/mypages/1"
+        }
+    },
+    "action": "apply",
+    "bakeryId": 3,
+    "item": "cake",
+    "orderId": 6,
+    "paymentId": null,
+    "price": 25000.0,
+    "qty": 1,
+    "status": "Confirmed"
+}
+```
 
 # 운영
 
