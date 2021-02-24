@@ -177,25 +177,64 @@ hystrix:
     }
 ```
 - siege 툴을 사용한 가공 부하 발생
-- 동시 사용자 100명, 20초 동안 실시
+- 동시 사용자 100명, 5초 동안 실시
 ```
-siege -c100 -t20S --content-type "application/json" 'http://localhost:8081/orders POST {"item": "cake", "qty": 1}'
+# 시즈 부하 발생
+siege -c100 -t5S -v --content-type "application/json" 'http://localhost:8081/orders POST {"item": "cake", "qty": 1}'
 
-{	"transactions":			          32,
-	"availability":			       86.49,
-	"elapsed_time":			       19.49,
-	"data_transferred":		        0.01,
-	"response_time":		       11.47,
-	"transaction_rate":		        1.64,
-	"throughput":			        0.00,
-	"concurrency":			       18.83,
-	"successful_transactions":	          32,
-	"failed_transactions":		           5,
-	"longest_transaction":		       19.14,
-	"shortest_transaction":		        0.00
-}
+** SIEGE 4.0.2
+** Preparing 100 concurrent users for battle.
+The server is now under siege...
+HTTP/1.1 201     0.42 secs:     217 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 201     0.43 secs:     217 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 201     0.44 secs:     217 bytes ==> POST http://localhost:8081/orders
+...
+HTTP/1.1 201     1.08 secs:     217 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 201     1.08 secs:     217 bytes ==> POST http://localhost:8081/orders
+
+# 과도한 요청으로 인한 CB 동작, 요청 차단
+HTTP/1.1 500     1.22 secs:     248 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 500     1.22 secs:     248 bytes ==> POST http://localhost:8081/orders
+
+# 정상화
+HTTP/1.1 201     1.50 secs:     217 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 201     1.50 secs:     217 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 201     1.52 secs:     217 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 201     1.55 secs:     217 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 201     1.56 secs:     217 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 201     1.57 secs:     217 bytes ==> POST http://localhost:8081/orders
+
+# 다시 CB 동작
+HTTP/1.1 500     1.59 secs:     248 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 500     1.60 secs:     248 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 500     1.60 secs:     248 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 500     1.60 secs:     248 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 500     1.60 secs:     248 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 500     1.61 secs:     248 bytes ==> POST http://localhost:8081/orders
+
+# 다시 정상화
+HTTP/1.1 201     1.64 secs:     217 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 201     1.65 secs:     217 bytes ==> POST http://localhost:8081/orders
+HTTP/1.1 201     1.78 secs:     217 bytes ==> POST http://localhost:8081/orders
+...
+
+# 서비스가 죽지 않고 열고 닫힘을 반복.
+
+Lifting the server siege...
+Transactions:                     86 hits
+Availability:                  84.31 %
+Elapsed time:                   4.92 secs
+Data transferred:               0.02 MB
+Response time:                  3.06 secs
+Transaction rate:              17.48 trans/sec
+Throughput:                     0.00 MB/sec
+Concurrency:                   53.54
+Successful transactions:          86
+Failed transactions:              16
+Longest transaction:            4.86
+Shortest transaction:           0.42
 ```
-- 86.49% 성공, 13.51% 실패
+- 84.31% 성공, 15.69% 실패
 
 ## 11. Polyglot
 - customer 서비스 DB를 기존 H2에서 hsql로 변경
