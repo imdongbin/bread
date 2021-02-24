@@ -422,7 +422,7 @@ pod/seige-74d7df4cd9-5t7mg   1/1     Running   0          3h19m
 NAME                                      REFERENCE        TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
 horizontalpodautoscaler.autoscaling/pay   Deployment/pay   8%/50%    1         10        5          8m46s
 
-# 
+# 부하가 감소하면서 다시 1개로 감소
 root@labs--749286782:/home/project# kubectl get all -n psn
 NAME                         READY   STATUS    RESTARTS   AGE
 pod/bakery-ddc95f6d6-gwwqj   1/1     Running   0          3h19m
