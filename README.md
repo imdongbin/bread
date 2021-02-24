@@ -127,6 +127,9 @@ Transfer-Encoding: chunked
 }
 ```
 
+## 7. Circuit Breaker
+hystrix 으로 구현
+
 ## 11. Polyglot
 - customer 서비스 DB를 기존 H2에서 hsql로 변경
 ```
@@ -181,9 +184,6 @@ Transfer-Encoding: chunked
 ## 6. Deploy/ Pipeline
 k8s에 create로 배포
 
-## 7. Circuit Breaker
-hystrix 으로 구현
-
 ## 8. Autoscale (HPA)
 공부해서 하자
 
@@ -195,7 +195,3 @@ hystrix 으로 구현
 
 ## 12. Self-healing (Liveness Probe)
 공부해서 하자
-
-
-
-
