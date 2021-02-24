@@ -288,7 +288,57 @@ Transfer-Encoding: chunked
 # 운영
 
 ## 6. Deploy/ Pipeline
-k8s에 create로 배포
+- k8s에 MSA 배포
+- 아래는 예시로 order 배포 script
+```
+mvn package
+docker build -t 496278789073.dkr.ecr.ap-northeast-1.amazonaws.com/skcc13-order:v1 .
+docker images
+docker login --username AWS -p $(aws ecr get-login-password --region ap-southeast-1) 496278789073.dkr.ecr.ap-northeast-1.amazonaws.com/
+aws ecr create-repository --repository-name skcc13-order --region ap-northeast-1
+docker push 496278789073.dkr.ecr.ap-northeast-1.amazonaws.com/skcc13-order:v1
+kubectl create deploy order --image=496278789073.dkr.ecr.ap-northeast-1.amazonaws.com/skcc13-order:v1 -n psn
+kubectl expose deploy order --type="ClusterIP" --port=8080 -n psn
+```
+- k8s에 siege 설치 하여 rest api 테스트
+```
+# 시즈 설치 및 실행
+kubectl run seige --image=ghcr.io/gkedu/siege-nginx -n psn
+kubectl exec -it seige-74d7df4cd9-5t7mg -c seige -n psn -- /bin/bash
+
+# rest api 테스트
+# 빵 주문
+http order:8080/orders item="cake" qty=1
+
+# 결제
+http pay:8080/payments orderId=? price=25000 action=apply
+
+# 주문 확인 해서 수락 하기
+http bakery:8080/bakeries orderId=? status="Confirmed"
+
+# 주문 상태 갱신 확인
+root@seige-74d7df4cd9-5t7mg:/# http order:8080/orders/1
+
+HTTP/1.1 200 
+Content-Type: application/hal+json;charset=UTF-8
+Date: Wed, 24 Feb 2021 08:37:04 GMT
+Transfer-Encoding: chunked
+
+{
+    "_links": {
+        "order": {
+            "href": "http://order:8080/orders/1"
+        },
+        "self": {
+            "href": "http://order:8080/orders/1"
+        }
+    },
+    "item": "cake",
+    "qty": 1,
+    "status": "Confirmed"
+}
+
+```
 
 ## 8. Autoscale (HPA)
 공부해서 하자
