@@ -128,7 +128,74 @@ Transfer-Encoding: chunked
 ```
 
 ## 7. Circuit Breaker
-hystrix 으로 구현
+- Spring FeignClient + Hystrix 옵션으로 구현
+- Hystrix 설정
+```
+# order 서비스 > application.yml 파일 수정
+
+feign:
+  hystrix:
+    enabled: true
+
+hystrix:
+  command:
+    # 전역설정
+    default:
+      execution.isolation.thread.timeoutInMilliseconds: 610
+```
+- 호출 받는 결제(pay) 서비스의 가공 부하 발생 처리
+```
+# pay 서비스 > Payment.java 수정
+
+@PrePersist
+    public void onPrePersist(){ // 부하 발생 처리
+
+        if("cancle".equals(action)) {
+            // 취소 요청 분기
+            PayCanceled payCanceled = new PayCanceled();
+            BeanUtils.copyProperties(this, payCanceled);
+            payCanceled.publish();
+        } else {
+            PayApproved payApproved = new PayApproved();
+            BeanUtils.copyProperties(this, payApproved);
+
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+                @Override
+                public void beforeCommit(boolean readOnly) {
+                    payApproved.publish();
+                }
+            });
+
+            // 부하 발생을 위한 코드
+            try {
+                Thread.currentThread().sleep((long) (400 + Math.random() * 220));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+```
+- siege 툴을 사용한 가공 부하 발생
+- 동시 사용자 100명, 20초 동안 실시
+```
+siege -c100 -t20S --content-type "application/json" 'http://localhost:8081/orders POST {"item": "cake", "qty": 1}'
+
+{	"transactions":			          32,
+	"availability":			       86.49,
+	"elapsed_time":			       19.49,
+	"data_transferred":		        0.01,
+	"response_time":		       11.47,
+	"transaction_rate":		        1.64,
+	"throughput":			        0.00,
+	"concurrency":			       18.83,
+	"successful_transactions":	          32,
+	"failed_transactions":		           5,
+	"longest_transaction":		       19.14,
+	"shortest_transaction":		        0.00
+}
+```
+- 86.49% 성공, 13.51% 실패
 
 ## 11. Polyglot
 - customer 서비스 DB를 기존 H2에서 hsql로 변경
