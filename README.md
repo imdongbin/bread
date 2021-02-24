@@ -341,7 +341,98 @@ Transfer-Encoding: chunked
 ```
 
 ## 8. Autoscale (HPA)
-공부해서 하자
+- 결제 서비스 폭주 상황을 가정 하여 pay 서비스에 HPA 적용
+```
+# pay 서비스 > deployment.yml 파일 수정 및 apply 적용
+# 아래 cpu 스펙 추가
+          resources:
+            requests:
+              cpu: "200m"
+            limits:
+              cpu: "500m"
+
+# cpu target <unknown> 예방 위해 metrics-server 설치
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
+# CPU 사용량이 50% 이상 넘어가면 레플리카를 10개 까지 증가 하는 것으로 HPA 설정 
+kubectl autoscale deployment pay --cpu-percent=50 --min=1 --max=10 -n psn
+
+# 시즈로 pay 부하 발생 시킴
+siege -c30 -t30S -v http://pay:8080/payments
+
+# pay 모니터링
+# 5개 까지 늘어났다가 사용량이 감소하면서 다시 1개로 감소 하였음
+root@labs--749286782:/home/project# kubectl get deploy pay -w -n psn
+NAME   READY   UP-TO-DATE   AVAILABLE   AGE
+pay    1/1     1            1           2m44s
+pay    1/4     1            1           3m53s
+pay    1/4     1            1           3m53s
+pay    1/4     1            1           3m53s
+pay    1/4     4            1           3m53s
+pay    1/5     4            1           4m8s
+pay    1/5     4            1           4m8s
+pay    1/5     4            1           4m8s
+pay    1/5     5            1           4m8s
+pay    2/5     5            2           5m10s
+pay    3/5     5            3           5m11s
+pay    4/5     5            4           5m17s
+pay    5/5     5            5           5m32s
+pay    5/1     5            5           9m43s
+pay    5/1     5            5           9m43s
+pay    1/1     1            1           9m43s
+
+# 부하 발생 전 평소 상황. CPU 6% 수준이다.
+root@labs--749286782:/home/project# kubectl get all -n psn
+NAME                         READY   STATUS    RESTARTS   AGE
+pod/bakery-ddc95f6d6-gwwqj   1/1     Running   0          3h8m
+pod/order-676db985bb-z7hmc   1/1     Running   0          3h19m
+pod/pay-7d675f54b8-xhcq6     1/1     Running   0          2m36s
+pod/seige-74d7df4cd9-5t7mg   1/1     Running   0          3h16m
+...
+NAME                                      REFERENCE        TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/pay   Deployment/pay   6%/50%    1         10        1          5m34s
+
+# 부하가 발생하여 CPU가 250% 수준까지 올라갔고 pay pod들도 설정에 따라 늘어나고 있다.
+root@labs--749286782:/home/project# kubectl get all -n psn
+NAME                         READY   STATUS              RESTARTS   AGE
+pod/bakery-ddc95f6d6-gwwqj   1/1     Running             0          3h9m
+pod/order-676db985bb-z7hmc   1/1     Running             0          3h20m
+pod/pay-7d675f54b8-5msrc     0/1     ContainerCreating   0          2s
+pod/pay-7d675f54b8-bzqzt     0/1     Running             0          2s
+pod/pay-7d675f54b8-jp5zh     0/1     ContainerCreating   0          2s
+pod/pay-7d675f54b8-xhcq6     1/1     Running             0          3m55s
+pod/seige-74d7df4cd9-5t7mg   1/1     Running             0          3h17m
+...
+NAME                                      REFERENCE        TARGETS    MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/pay   Deployment/pay   250%/50%   1         10        1          6m52s
+
+# pay 서비스가 늘어나면서 CPU는 8%까지 감소 하였다.
+root@labs--749286782:/home/project# kubectl get all -n psn
+
+NAME                         READY   STATUS    RESTARTS   AGE
+pod/bakery-ddc95f6d6-gwwqj   1/1     Running   0          3h11m
+pod/order-676db985bb-z7hmc   1/1     Running   0          3h22m
+pod/pay-7d675f54b8-5msrc     1/1     Running   0          116s
+pod/pay-7d675f54b8-bzqzt     1/1     Running   0          116s
+pod/pay-7d675f54b8-jp5zh     1/1     Running   0          116s
+pod/pay-7d675f54b8-mgpnc     1/1     Running   0          101s
+pod/pay-7d675f54b8-xhcq6     1/1     Running   0          5m49s
+pod/seige-74d7df4cd9-5t7mg   1/1     Running   0          3h19m
+...
+NAME                                      REFERENCE        TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/pay   Deployment/pay   8%/50%    1         10        5          8m46s
+
+# 
+root@labs--749286782:/home/project# kubectl get all -n psn
+NAME                         READY   STATUS    RESTARTS   AGE
+pod/bakery-ddc95f6d6-gwwqj   1/1     Running   0          3h19m
+pod/order-676db985bb-z7hmc   1/1     Running   0          3h30m
+pod/pay-7d675f54b8-xhcq6     1/1     Running   0          13m
+pod/seige-74d7df4cd9-5t7mg   1/1     Running   0          3h27m
+...
+NAME                                      REFERENCE        TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/pay   Deployment/pay   2%/50%    1         10        1          27m
+```
 
 ## 9. Zero-downtime deploy (Readiness Probe)
 공부해서 하자
