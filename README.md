@@ -489,6 +489,22 @@ Shortest transaction:           0.00
 # 변경 내용 적용
 kubectl apply -f kubernetes/deployment.yaml
 ```
+- 동일한 시나리오로 재배포한 후 siege 결과 확인
+```
+Transactions:                  83801 hits
+Availability:                 100.00 %
+Elapsed time:                 119.98 secs
+Data transferred:              27.49 MB
+Response time:                  0.04 secs
+Transaction rate:             698.46 trans/sec
+Throughput:                     0.23 MB/sec
+Concurrency:                   29.82
+Successful transactions:       83801
+Failed transactions:               0
+Longest transaction:            1.16
+Shortest transaction:           0.00
+```
+- 배포 과정에서 Availability가 100.00%로 확인 되기 때문에 무정지 배포 성공으로 판단.
 
 ## 10. Config Map/ Persistence Volume
 컨피그 맵 공부 해서 하자
