@@ -287,7 +287,7 @@ Transfer-Encoding: chunked
 
 # 운영
 
-## 6. Deploy/ Pipeline
+## 6. Deploy
 - k8s에 MSA 배포
 - 아래는 예시로 order 배포 script
 ```
@@ -506,8 +506,33 @@ Shortest transaction:           0.00
 ```
 - 배포 과정에서 Availability가 100.00%로 확인 되기 때문에 무정지 배포 성공으로 판단.
 
-## 10. Config Map/ Persistence Volume
-컨피그 맵 공부 해서 하자
+## 10. Config Map
+- Config Map의 환경변수를 읽어서 출력 하는 NodeJS 프로그램을 인터넷 브라우저 통해 호출 하는 방식으로 구현
+```
+# ConfigMap 생성
+kubectl create configmap hello-cm --from-literal=language=java -n psn
+kubectl get cm -n psn
+kubectl get cm hello-cm -o yaml -n psn
+
+# ConfigMap의 환경변수를 읽어 출력하는 NodeJS 어플리케이션
+var os = require('os');
+var http = require('http');
+var handleRequest = function(request, response) {
+    response.writeHead(200);
+    response.end(" my prefered language is "+process.env.LANGUAGE+ "\n");
+//log 
+    console.log("["+
+            Date(Date.now()).toLocaleString()+ 
+            "] "+os.hostname());
+}
+var www = http.createServer(handleRequest); 
+www.listen(8080);
+```
+- deploy, service 배포 후 external-ip 확인
+<img width="1089" alt="스크린샷 2021-02-25 오후 1 46 39" src="https://user-images.githubusercontent.com/58290368/109104769-f3c85600-776f-11eb-9eee-b3f8e010bdf9.png">
+
+- 인터넷 브라우저에서 external-ip로 접근하여 결과물 확인
+<img width="862" alt="스크린샷 2021-02-25 오후 1 49 50" src="https://user-images.githubusercontent.com/58290368/109104974-5f122800-7770-11eb-9f40-67c9a3ae8ac3.png">
 
 ## 12. Self-healing (Liveness Probe)
 공부해서 하자
