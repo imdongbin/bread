@@ -435,7 +435,60 @@ horizontalpodautoscaler.autoscaling/pay   Deployment/pay   2%/50%    1         1
 ```
 
 ## 9. Zero-downtime deploy (Readiness Probe)
-공부해서 하자
+- HPA 제거
+```
+root@labs-38102048:/home/project/bread/order# kubectl delete hpa pay -n psn
+horizontalpodautoscaler.autoscaling "pay" deleted
+```
+- CB 제거
+```
+# order 서비스 내 application.yml 파일에서 hystrix 설정 제거
+# 호출 받는 결제(pay) 서비스의 가공 부하 발생 처리 로직 제거
+```
+- siege로 배포 과정 모니터링
+```
+siege -c30 -t120S -v http://order:8080/orders
+
+HTTP/1.1 200     0.20 secs:     344 bytes ==> GET  /orders
+HTTP/1.1 200     0.27 secs:     344 bytes ==> GET  /orders
+...
+```
+- Readiness Probe 설정 안된 상태, 새 버전으로 배포
+```
+kubectl set image deployment.apps/order order=496278789073.dkr.ecr.ap-northeast-1.amazonaws.com/skcc13-order:v2 -n psn
+```
+- siege 결과 확인
+```
+Transactions:                   2921 hits
+Availability:                  73.50 %
+Elapsed time:                   9.09 secs
+Data transferred:               0.96 MB
+Response time:                  0.09 secs
+Transaction rate:             321.34 trans/sec
+Throughput:                     0.11 MB/sec
+Concurrency:                   29.17
+Successful transactions:        2921
+Failed transactions:            1053
+Longest transaction:            0.52
+Shortest transaction:           0.00
+```
+- 배포 과정에서 Availability가 평소 100%서 73.50%로 악화 되는 것을 확인
+- 원인은 쿠버네티스가 아직 준비가 채 안된 업데이트 서비스가 생성 되자 마자 서비스 유입을 시키기 때문
+- 이를 방지 하기 위해 Readiness Probe 설정
+```
+# deployment.yaml 의 readiness probe 의 설정:
+          readinessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 10
+
+# 변경 내용 적용
+kubectl apply -f kubernetes/deployment.yaml
+```
 
 ## 10. Config Map/ Persistence Volume
 컨피그 맵 공부 해서 하자
