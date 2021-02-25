@@ -535,4 +535,25 @@ www.listen(8080);
 <img width="862" alt="스크린샷 2021-02-25 오후 1 49 50" src="https://user-images.githubusercontent.com/58290368/109104974-5f122800-7770-11eb-9f40-67c9a3ae8ac3.png">
 
 ## 12. Self-healing (Liveness Probe)
-공부해서 하자
+- Liveness Probe 동작을 확인 하기 위해 우선 설정 파일을 8080->8081로 변경 한다.
+```
+# deployment.yml 파일 수정 하여 적용 한다.
+
+          livenessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8081
+            initialDelaySeconds: 120
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 5	    	    
+
+# pod를 지속적으로 조회 하면 계속 재시작 하고 있는 것을 알 수 있다.
+# liveness prove에서 target 포트를 없는 포트로 변조 했기 때문에 계속 잘못된 파드라고 판단하고 재시작 하기 때문이다.
+
+root@labs-38102048:/home/project# kubectl get po order-855d9b6dcd-ttppc -n psn
+NAME                     READY   STATUS    RESTARTS   AGE
+order-855d9b6dcd-ttppc   1/1     Running   4          11m
+```
+- pod를 describe 에서 liveness probe에서 8081 탐지 시 오류를 판단하고 재시작 시키는 과정을 확인 한다.
+<img width="1037" alt="스크린샷 2021-02-25 오후 2 14 46" src="https://user-images.githubusercontent.com/58290368/109106818-eb721a00-7773-11eb-8819-582e919d80f3.png">
